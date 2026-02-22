@@ -127,6 +127,16 @@
     .wood { background: linear-gradient(90deg, #8B4513 0%, #A0522D 50%, #8B4513 100%); }
     .leaves { background: #228B22; }
     .sky { background: #87CEEB; border: 2px dashed #fff; }
+    .water { background: linear-gradient(180deg, #4FC3F7 0%, #0288D1 100%); }
+    .sand { background: #F4D03F; }
+    .snow { background: linear-gradient(180deg, #FFFFFF 0%, #E8E8E8 100%); }
+    .lava { background: linear-gradient(180deg, #FF5722 0%, #FF9800 50%, #FFEB3B 100%); animation: lavaGlow 1s infinite; }
+    .cobblestone { background: repeating-linear-gradient(45deg, #6d6d6d, #6d6d6d 5px, #808080 5px, #808080 10px); }
+    
+    @keyframes lavaGlow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
 
     .world-container {
       position: relative;
@@ -157,6 +167,11 @@
     .cell.wood { background: linear-gradient(90deg, #8B4513 0%, #A0522D 50%, #8B4513 100%); }
     .cell.leaves { background: #228B22; }
     .cell.sky { background: #87CEEB; }
+    .cell.water { background: linear-gradient(180deg, #4FC3F7 0%, #0288D1 100%); }
+    .cell.sand { background: #F4D03F; }
+    .cell.snow { background: linear-gradient(180deg, #FFFFFF 0%, #E8E8E8 100%); }
+    .cell.lava { background: linear-gradient(180deg, #FF5722 0%, #FF9800 50%, #FFEB3B 100%); animation: lavaGlow 1s infinite; }
+    .cell.cobblestone { background: repeating-linear-gradient(45deg, #6d6d6d, #6d6d6d 5px, #808080 5px, #808080 10px); }
 
     .player {
       position: absolute;
@@ -345,6 +360,11 @@
       <button class="block-btn dirt" data-block="dirt" title="Dirt"></button>
       <button class="block-btn wood" data-block="wood" title="Wood"></button>
       <button class="block-btn leaves" data-block="leaves" title="Leaves"></button>
+      <button class="block-btn cobblestone" data-block="cobblestone" title="Cobblestone"></button>
+      <button class="block-btn water" data-block="water" title="Water"></button>
+      <button class="block-btn sand" data-block="sand" title="Sand"></button>
+      <button class="block-btn snow" data-block="snow" title="Snow"></button>
+      <button class="block-btn lava" data-block="lava" title="Lava"></button>
       <button class="block-btn sky" data-block="sky" title="Erase"></button>
     </div>
 
@@ -397,20 +417,77 @@
     let monsterSpawnInterval;
     let monsterMoveInterval;
 
-    // Create the world grid
+    // Create the world grid with terrain
     function createWorld() {
       world.innerHTML = '';
-      for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
+      
+      // Generate terrain with different heights
+      for (let col = 0; col < cols; col++) {
+        // Create varying terrain height
+        let groundRow;
+        const rand = Math.random();
+        
+        // Different biomes
+        if (rand < 0.15) {
+          // Water/Lake area (very low)
+          groundRow = rows - 1;
+        } else if (rand < 0.3) {
+          // Sand/Beach
+          groundRow = rows - 2;
+        } else if (rand < 0.6) {
+          // Plains (grass)
+          groundRow = rows - 3;
+        } else if (rand < 0.8) {
+          // Hills
+          groundRow = rows - 4;
+        } else {
+          // Mountains
+          groundRow = rows - 5 - Math.floor(Math.random() * 2);
+        }
+        
+        for (let row = 0; row < rows; row++) {
           const cell = document.createElement('div');
           cell.className = 'cell';
-          if (row >= rows - 2) {
-            cell.classList.add('grass');
-            cell.dataset.block = 'grass';
-          } else {
+          
+          if (row > groundRow) {
+            // Sky
             cell.classList.add('sky');
             cell.dataset.block = 'sky';
+          } else if (row === groundRow) {
+            // Top layer - depends on height
+            if (groundRow >= rows - 1) {
+              cell.classList.add('water');
+              cell.dataset.block = 'water';
+            } else if (groundRow >= rows - 2) {
+              cell.classList.add('sand');
+              cell.dataset.block = 'sand';
+            } else if (groundRow >= rows - 4) {
+              cell.classList.add('grass');
+              cell.dataset.block = 'grass';
+            } else if (groundRow >= rows - 5) {
+              cell.classList.add('stone');
+              cell.dataset.block = 'stone';
+            } else {
+              cell.classList.add('snow');
+              cell.dataset.block = 'snow';
+            }
+          } else {
+            // Below surface
+            if (groundRow >= rows - 1) {
+              cell.classList.add('water');
+              cell.dataset.block = 'water';
+            } else if (groundRow >= rows - 2) {
+              cell.classList.add('sand');
+              cell.dataset.block = 'sand';
+            } else if (groundRow >= rows - 4) {
+              cell.classList.add('dirt');
+              cell.dataset.block = 'dirt';
+            } else {
+              cell.classList.add('stone');
+              cell.dataset.block = 'stone';
+            }
           }
+          
           cell.addEventListener('click', () => placeBlock(cell));
           world.appendChild(cell);
         }
