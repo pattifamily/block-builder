@@ -783,6 +783,44 @@
     // Initialize
     loadProgress();
     createLevelButtons();
+
+    // Monster AI - move every 800ms
+    setInterval(() => {
+      if (!gameRunning) return;
+      
+      monsters.forEach(monster => {
+        const mx = parseInt(monster.dataset.x);
+        const my = parseInt(monster.dataset.y);
+        
+        // Move toward player with some randomness
+        let newX = mx;
+        let newY = my;
+        
+        if (Math.random() < 0.7) {
+          // Move toward player
+          if (mx < playerX) newX++;
+          else if (mx > playerX) newX--;
+          
+          if (my < playerY) newY++;
+          else if (my > playerY) newY--;
+        } else {
+          // Random movement
+          newX += Math.floor(Math.random() * 3) - 1;
+          newY += Math.floor(Math.random() * 3) - 1;
+        }
+        
+        // Keep in bounds
+        newX = Math.max(0, Math.min(cols - 1, newX));
+        newY = Math.max(0, Math.min(rows - 3, newY));
+        
+        monster.dataset.x = newX;
+        monster.dataset.y = newY;
+        monster.style.left = (newX * 30 + 2) + 'px';
+        monster.style.top = (newY * 30 + 2) + 'px';
+      });
+      
+      checkCollisions();
+    }, 800);
   </script>
 </body>
 </html>
