@@ -402,6 +402,7 @@
     const gravity = 0.3;
     const jumpStrength = -1.5;
     let isGrounded = false;
+    let canDoubleJump = true;
 
     // Level settings
     const levelSettings = {
@@ -525,6 +526,7 @@
       playerY = 8;
       velocityY = 0;
       isGrounded = false;
+      canDoubleJump = true;
       updatePlayerPosition();
     }
 
@@ -552,6 +554,14 @@
         if (isGrounded) {
           velocityY = jumpStrength;
           isGrounded = false;
+          canDoubleJump = true;
+        } else if (canDoubleJump) {
+          // Double jump!
+          velocityY = jumpStrength;
+          canDoubleJump = false;
+          // Visual effect for double jump
+          player.style.transform = 'scale(1.2)';
+          setTimeout(() => player.style.transform = 'scale(1)', 150);
         }
       }
     });
@@ -567,6 +577,7 @@
         playerY = groundRow;
         velocityY = 0;
         isGrounded = true;
+        canDoubleJump = true; // Reset double jump when landing
       } else {
         playerY = targetY;
         velocityY += gravity;
@@ -601,7 +612,13 @@
         const cx = parseInt(coin.dataset.x);
         const cy = parseInt(coin.dataset.y);
         if (cx === playerX && cy === playerY) {
-          coin.remove();
+          // Coin collected animation
+          coin.style.transform = 'scale(1.5)';
+          coin.style.opacity = '0';
+          coin.style.transition = 'all 0.2s';
+          setTimeout(() => {
+            coin.remove();
+          }, 200);
           coinItems.splice(i, 1);
           updateCoinDisplay();
         }
@@ -746,9 +763,15 @@
 
     jumpBtn.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      if (gameRunning && isGrounded) {
-        velocityY = jumpStrength;
-        isGrounded = false;
+      if (gameRunning) {
+        if (isGrounded) {
+          velocityY = jumpStrength;
+          isGrounded = false;
+          canDoubleJump = true;
+        } else if (canDoubleJump) {
+          velocityY = jumpStrength;
+          canDoubleJump = false;
+        }
       }
     });
 
