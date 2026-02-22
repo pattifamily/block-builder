@@ -539,7 +539,8 @@
       coinItems = [];
       
       // Show game
-      menuScreen.classList.add('hidden');
+      document.getElementById('menuScreen').style.display = 'none';
+      document.getElementById('shopScreen').style.display = 'none';
       gameInfo.classList.add('show');
       gameContainer.classList.add('show');
       controls.classList.add('show');
@@ -883,6 +884,7 @@
     // Initialize
     loadProgress();
     createLevelButtons();
+    document.getElementById('menuScreen').style.display = 'flex';
 
     // Monster AI - move every 800ms
     setInterval(() => {
