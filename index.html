@@ -227,6 +227,63 @@
       text-align: center;
     }
 
+    .joystick-container {
+      position: fixed;
+      bottom: 30px;
+      left: 30px;
+      width: 120px;
+      height: 120px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: none;
+      touch-action: none;
+      z-index: 50;
+    }
+
+    .joystick-container.show {
+      display: block;
+    }
+
+    .joystick-knob {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    .attack-btn {
+      position: fixed;
+      bottom: 50px;
+      right: 30px;
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 68, 68, 0.8);
+      border-radius: 50%;
+      border: 4px solid white;
+      color: white;
+      font-size: 2rem;
+      display: none;
+      z-index: 50;
+      touch-action: none;
+    }
+
+    .attack-btn.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (pointer: coarse) {
+      .joystick-container.show, .attack-btn.show {
+        display: flex !important;
+      }
+    }
+
     .game-over {
       position: fixed;
       top: 0;
@@ -302,8 +359,8 @@
   </div>
 
   <div class="instructions">
-    <strong>How to Play:</strong> Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to move. Click to place blocks. 
-    Avoid the monsters! They'll hurt you! Build walls to protect yourself!
+    <strong>How to Play (Computer):</strong> Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to move. Click to place blocks. Click monsters to attack.<br>
+    <strong>How to Play (iPad):</strong> Use the <strong>joystick</strong> on the left to move. Tap the <strong>red attack button</strong> on the right to fight monsters!
   </div>
 
   <div class="game-over" id="gameOver">
@@ -311,6 +368,12 @@
     <p>Your score: <span id="finalScore">0</span></p>
     <button onclick="resetGame()">🔄 Play Again</button>
   </div>
+
+  <div class="joystick-container" id="joystick">
+    <div class="joystick-knob" id="joystickKnob"></div>
+  </div>
+
+  <div class="attack-btn" id="attackBtn">⚔️</div>
 
   <script>
     const world = document.getElementById('world');
@@ -573,6 +636,100 @@
     createWorld();
     updatePlayerPosition();
     resetGame();
+
+    // Joystick controls for iPad
+    const joystick = document.getElementById('joystick');
+    const joystickKnob = document.getElementById('joystickKnob');
+    const attackBtn = document.getElementById('attackBtn');
+    
+    let joystickActive = false;
+    let joystickX = 0;
+    let joystickY = 0;
+
+    // Show joystick on touch devices
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      joystick.classList.add('show');
+      attackBtn.classList.add('show');
+    }
+
+    // Joystick touch handling
+    joystick.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      joystickActive = true;
+    });
+
+    joystick.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!joystickActive || !gameRunning) return;
+      
+      const touch = e.touches[0];
+      const rect = joystick.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      let dx = touch.clientX - centerX;
+      let dy = touch.clientY - centerY;
+      
+      const maxDist = 35;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist > maxDist) {
+        dx = (dx / dist) * maxDist;
+        dy = (dy / dist) * maxDist;
+      }
+      
+      joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      
+      joystickX = dx / maxDist;
+      joystickY = dy / maxDist;
+    });
+
+    joystick.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      joystickActive = false;
+      joystickX = 0;
+      joystickY = 0;
+      joystickKnob.style.transform = 'translate(-50%, -50%)';
+    });
+
+    // Continuous movement based on joystick
+    setInterval(() => {
+      if (!gameRunning || (!joystickActive && joystickX === 0 && joystickY === 0)) return;
+      
+      if (Math.abs(joystickX) > 0.2 || Math.abs(joystickY) > 0.2) {
+        let newX = playerX;
+        let newY = playerY;
+        
+        if (joystickX < -0.3) newX--;
+        if (joystickX > 0.3) newX++;
+        if (joystickY < -0.3) newY--;
+        if (joystickY > 0.3) newY++;
+        
+        if (newX >= 0 && newX < cols && newY >= 0 && newY < rows) {
+          playerX = newX;
+          playerY = newY;
+          updatePlayerPosition();
+          checkMonsterCollision();
+        }
+      }
+    }, 100);
+
+    // Attack button
+    attackBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (!gameRunning) return;
+      
+      monsters.forEach(monster => {
+        const mx = parseInt(monster.dataset.x);
+        const my = parseInt(monster.dataset.y);
+        if (Math.abs(mx - playerX) <= 1 && Math.abs(my - playerY) <= 1) {
+          killMonster(monster);
+        }
+      });
+      
+      attackBtn.style.transform = 'scale(0.9)';
+      setTimeout(() => attackBtn.style.transform = 'scale(1)', 100);
+    });
   </script>
 </body>
 </html>
