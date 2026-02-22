@@ -328,6 +328,15 @@
     <h2 style="color: white;">Choose a Level!</h2>
     <div class="level-grid" id="levelGrid"></div>
     <p style="color: #aaa; margin-top: 20px;">🪙 Coins: <span id="totalCoins">0</span></p>
+    <button class="btn btn-shop" onclick="showShop()" style="margin-top: 20px; padding: 15px 30px; font-size: 1.2rem; background: #FFD700; color: #000; border: none; border-radius: 10px; cursor: pointer;">🛒 Shop</button>
+  </div>
+
+  <!-- Shop Screen -->
+  <div class="shop-screen" id="shopScreen" style="display: none; flex-direction: column; align-items: center; padding: 30px;">
+    <h2 style="color: #FFD700; font-size: 2rem; margin-bottom: 20px;">🛒 Emoji Shop</h2>
+    <p style="color: white; margin-bottom: 20px;">Your Coins: <span id="shopCoins">0</span> 🪙</p>
+    <div class="skin-grid" id="skinGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;"></div>
+    <button class="btn" onclick="backToMenuFromShop()" style="margin-top: 30px; padding: 10px 20px; font-size: 1rem; background: #666; color: white; border: none; border-radius: 8px; cursor: pointer;">⬅️ Back</button>
   </div>
 
   <!-- Game Info -->
@@ -408,18 +417,98 @@
       9: { monsters: 15, coins: 25, neededKills: 15 }
     };
 
+    // Available skins
+    const skins = [
+      { emoji: '😊', name: 'Happy', price: 0, owned: true },
+      { emoji: '😎', name: 'Cool', price: 10, owned: false },
+      { emoji: '🤠', name: 'Cowboy', price: 20, owned: false },
+      { emoji: '👽', name: 'Alien', price: 30, owned: false },
+      { emoji: '🤖', name: 'Robot', price: 40, owned: false },
+      { emoji: '👻', name: 'Ghost', price: 50, owned: false },
+      { emoji: '🦸', name: 'Hero', price: 75, owned: false },
+      { emoji: '🦄', name: 'Unicorn', price: 100, owned: false },
+      { emoji: '🐉', name: 'Dragon', price: 150, owned: false }
+    ];
+
+    let currentSkin = '😊';
+    let ownedSkins = ['😊'];
+
     // Save/Load
     function saveProgress() {
       localStorage.setItem('blockAdventure_unlocked', unlockedLevels);
       localStorage.setItem('blockAdventure_coins', totalCoins);
+      localStorage.setItem('blockAdventure_skins', JSON.stringify(ownedSkins));
+      localStorage.setItem('blockAdventure_currentSkin', currentSkin);
     }
 
     function loadProgress() {
       const saved = localStorage.getItem('blockAdventure_unlocked');
       const coins = localStorage.getItem('blockAdventure_coins');
+      const savedSkins = localStorage.getItem('blockAdventure_skins');
+      const savedSkin = localStorage.getItem('blockAdventure_currentSkin');
+      
       if (saved) unlockedLevels = parseInt(saved);
       if (coins) totalCoins = parseInt(coins);
+      if (savedSkins) ownedSkins = JSON.parse(savedSkins);
+      if (savedSkin) currentSkin = savedSkin;
+      
       totalCoinsDisplay.textContent = totalCoins;
+      document.getElementById('player').textContent = currentSkin;
+    }
+
+    // Shop functions
+    function showShop() {
+      document.getElementById('menuScreen').style.display = 'none';
+      document.getElementById('shopScreen').style.display = 'flex';
+      document.getElementById('shopCoins').textContent = totalCoins;
+      renderShop();
+    }
+
+    function backToMenuFromShop() {
+      document.getElementById('shopScreen').style.display = 'none';
+      document.getElementById('menuScreen').style.display = 'flex';
+    }
+
+    function renderShop() {
+      const grid = document.getElementById('skinGrid');
+      grid.innerHTML = '';
+      
+      skins.forEach(skin => {
+        const btn = document.createElement('button');
+        btn.style.cssText = 'width: 80px; height: 80px; font-size: 2rem; border: 3px solid #444; border-radius: 10px; background: #222; cursor: pointer;';
+        
+        if (ownedSkins.includes(skin.emoji)) {
+          btn.style.borderColor = currentSkin === skin.emoji ? '#FFD700' : '#444';
+          btn.textContent = skin.emoji;
+          btn.onclick = () => selectSkin(skin.emoji);
+        } else {
+          btn.textContent = skin.emoji + '\n' + skin.price + '🪙';
+          btn.style.color = 'white';
+          btn.onclick = () => buySkin(skin);
+        }
+        
+        grid.appendChild(btn);
+      });
+    }
+
+    function buySkin(skin) {
+      if (totalCoins >= skin.price) {
+        totalCoins -= skin.price;
+        ownedSkins.push(skin.emoji);
+        saveProgress();
+        document.getElementById('shopCoins').textContent = totalCoins;
+        document.getElementById('totalCoins').textContent = totalCoins;
+        renderShop();
+      } else {
+        alert('Not enough coins! Need ' + skin.price + '🪙');
+      }
+    }
+
+    function selectSkin(emoji) {
+      currentSkin = emoji;
+      document.getElementById('player').textContent = emoji;
+      saveProgress();
+      renderShop();
     }
 
     // Create level buttons
@@ -470,11 +559,13 @@
 
     function backToMenu() {
       gameRunning = false;
-      menuScreen.classList.remove('hidden');
+      menuScreen.style.display = 'flex';
+      document.getElementById('shopScreen').style.display = 'none';
       gameInfo.classList.remove('show');
       gameContainer.classList.remove('show');
       controls.classList.remove('show');
       instructions.classList.remove('show');
+      document.getElementById('player').textContent = currentSkin;
       createLevelButtons();
     }
 
@@ -506,6 +597,7 @@
       isGrounded = false;
       canDoubleJump = true;
       updatePlayerPosition();
+      player.textContent = currentSkin;
     }
 
     function updatePlayerPosition() {
@@ -676,8 +768,23 @@
         const idx = coinItems.indexOf(coin);
         if (idx > -1) coinItems.splice(idx, 1);
         updateCoinDisplay();
+      } else {
+        // Show hint
+        coin.style.animation = 'shake 0.3s';
+        setTimeout(() => coin.style.animation = '', 300);
       }
     }
+
+    // Add shake animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+      }
+    `;
+    document.head.appendChild(style);
 
     function attackMonster(monster) {
       if (!gameRunning) return;
@@ -810,6 +917,11 @@
         monster.dataset.y = newY;
         monster.style.left = (newX * 30 + 2) + 'px';
         monster.style.top = (newY * 30 + 2) + 'px';
+        
+        // Monster attacks player if close
+        if (Math.abs(newX - playerX) <= 1 && Math.abs(newY - playerY) <= 1) {
+          takeDamage(10);
+        }
       });
       
       checkCollisions();
