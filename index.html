@@ -417,33 +417,58 @@
     let monsterSpawnInterval;
     let monsterMoveInterval;
 
-    // Create the world grid with terrain
+    // Simple noise function for smooth terrain
+    function noise(x, seed) {
+      const n = Math.sin(x * 12.9898 + seed * 78.233) * 43758.5453;
+      return n - Math.floor(n);
+    }
+
+    function smoothNoise(x, seed) {
+      const i = Math.floor(x);
+      const f = x - i;
+      
+      const a = noise(i, seed);
+      const b = noise(i + 1, seed);
+      
+      // Smooth interpolation
+      const t = f * f * (3 - 2 * f);
+      return a + (b - a) * t;
+    }
+
+    function perlinNoise(x, seed) {
+      let total = 0;
+      let frequency = 1;
+      let amplitude = 1;
+      let maxValue = 0;
+      
+      // Add multiple octaves for more detail
+      for (let i = 0; i < 4; i++) {
+        total += smoothNoise(x * frequency, seed + i * 100) * amplitude;
+        maxValue += amplitude;
+        amplitude *= 0.5;
+        frequency *= 2;
+      }
+      
+      return total / maxValue;
+    }
+
+    // Create the world grid with proper Minecraft-style terrain
     function createWorld() {
       world.innerHTML = '';
       
-      // Generate terrain with different heights
+      const seed = Math.random() * 1000;
+      
       for (let col = 0; col < cols; col++) {
-        // Create varying terrain height
-        let groundRow;
-        const rand = Math.random();
+        // Generate height using smooth noise
+        const heightValue = perlinNoise(col * 0.15, seed);
+        const groundRow = Math.floor(rows - 2 - heightValue * 6); // Height between 1-7 blocks
         
-        // Different biomes
-        if (rand < 0.15) {
-          // Water/Lake area (very low)
-          groundRow = rows - 1;
-        } else if (rand < 0.3) {
-          // Sand/Beach
-          groundRow = rows - 2;
-        } else if (rand < 0.6) {
-          // Plains (grass)
-          groundRow = rows - 3;
-        } else if (rand < 0.8) {
-          // Hills
-          groundRow = rows - 4;
-        } else {
-          // Mountains
-          groundRow = rows - 5 - Math.floor(Math.random() * 2);
-        }
+        // Determine biome based on height
+        let biome = 'plains';
+        if (groundRow >= rows - 2) biome = 'water';
+        else if (groundRow >= rows - 3) biome = 'beach';
+        else if (groundRow <= rows - 7) biome = 'mountain';
+        else biome = 'plains';
         
         for (let row = 0; row < rows; row++) {
           const cell = document.createElement('div');
@@ -454,37 +479,48 @@
             cell.classList.add('sky');
             cell.dataset.block = 'sky';
           } else if (row === groundRow) {
-            // Top layer - depends on height
-            if (groundRow >= rows - 1) {
-              cell.classList.add('water');
-              cell.dataset.block = 'water';
-            } else if (groundRow >= rows - 2) {
-              cell.classList.add('sand');
-              cell.dataset.block = 'sand';
-            } else if (groundRow >= rows - 4) {
-              cell.classList.add('grass');
-              cell.dataset.block = 'grass';
-            } else if (groundRow >= rows - 5) {
-              cell.classList.add('stone');
-              cell.dataset.block = 'stone';
-            } else {
-              cell.classList.add('snow');
-              cell.dataset.block = 'snow';
+            // Surface layer
+            switch(biome) {
+              case 'water':
+                cell.classList.add('water');
+                cell.dataset.block = 'water';
+                break;
+              case 'beach':
+                cell.classList.add('sand');
+                cell.dataset.block = 'sand';
+                break;
+              case 'mountain':
+                cell.classList.add('stone');
+                cell.dataset.block = 'stone';
+                break;
+              default:
+                cell.classList.add('grass');
+                cell.dataset.block = 'grass';
+            }
+          } else if (row > groundRow - 3) {
+            // Below surface - dirt
+            switch(biome) {
+              case 'water':
+                cell.classList.add('sand');
+                cell.dataset.block = 'sand';
+                break;
+              case 'mountain':
+                cell.classList.add('stone');
+                cell.dataset.block = 'stone';
+                break;
+              default:
+                cell.classList.add('dirt');
+                cell.dataset.block = 'dirt';
             }
           } else {
-            // Below surface
-            if (groundRow >= rows - 1) {
-              cell.classList.add('water');
-              cell.dataset.block = 'water';
-            } else if (groundRow >= rows - 2) {
-              cell.classList.add('sand');
-              cell.dataset.block = 'sand';
-            } else if (groundRow >= rows - 4) {
-              cell.classList.add('dirt');
-              cell.dataset.block = 'dirt';
-            } else {
-              cell.classList.add('stone');
-              cell.dataset.block = 'stone';
+            // Deep underground - stone
+            cell.classList.add('stone');
+            cell.dataset.block = 'stone';
+            
+            // Sometimes add caves (random spots of air)
+            if (Math.random() < 0.05) {
+              cell.classList.add('sky');
+              cell.dataset.block = 'sky';
             }
           }
           
