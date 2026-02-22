@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Block Builder 🧱</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(180deg, #87CEEB 0%, #87CEEB 50%, #228B22 50%, #1a5c1a 100%);
+      font-family: 'Comic Sans MS', cursive;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      user-select: none;
+    }
+
+    h1 {
+      color: white;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 0 #000;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #fff;
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    .game-container {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .toolbar {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toolbar h3 {
+      color: white;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    .block-btn {
+      width: 60px;
+      height: 60px;
+      border: 4px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 2rem;
+    }
+
+    .block-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .block-btn.selected {
+      border-color: yellow;
+      box-shadow: 0 0 15px yellow;
+    }
+
+    .grass {
+      background: linear-gradient(180deg, #4CAF50 0%, #4CAF50 40%, #8B4513 40%, #8B4513 100%);
+    }
+
+    .stone {
+      background: linear-gradient(135deg, #808080 25%, #696969 25%, #696969 50%, #808080 50%, #808080 75%, #696969 75%);
+      background-size: 20px 20px;
+    }
+
+    .dirt {
+      background: #8B4513;
+    }
+
+    .wood {
+      background: linear-gradient(90deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+    }
+
+    .leaves {
+      background: #228B22;
+    }
+
+    .sky {
+      background: #87CEEB;
+      border: 2px dashed #fff;
+    }
+
+    .world {
+      display: grid;
+      grid-template-columns: repeat(20, 30px);
+      grid-template-rows: repeat(15, 30px);
+      border: 5px solid #444;
+      border-radius: 5px;
+      background: #87CEEB;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .cell {
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .cell:hover {
+      transform: scale(1.05);
+      z-index: 1;
+      border: 2px solid yellow;
+    }
+
+    .cell.grass {
+      background: linear-gradient(180deg, #4CAF50 0%, #4CAF50 40%, #8B4513 40%, #8B4513 100%);
+    }
+
+    .cell.stone {
+      background: linear-gradient(135deg, #808080 25%, #696969 25%, #696969 50%, #808080 50%, #808080 75%, #696969 75%);
+      background-size: 10px 10px;
+    }
+
+    .cell.dirt {
+      background: #8B4513;
+    }
+
+    .cell.wood {
+      background: linear-gradient(90deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+    }
+
+    .cell.leaves {
+      background: #228B22;
+    }
+
+    .cell.sky {
+      background: transparent;
+    }
+
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .btn-clear {
+      background: #ff4444;
+      color: white;
+    }
+
+    .btn-clear:hover {
+      background: #ff6666;
+    }
+
+    .btn-save {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .btn-save:hover {
+      background: #66BB6A;
+    }
+
+    .instructions {
+      margin-top: 20px;
+      background: rgba(0,0,0,0.5);
+      padding: 15px;
+      border-radius: 10px;
+      color: white;
+      max-width: 600px;
+      text-align: center;
+    }
+
+    .instructions h3 {
+      margin-bottom: 10px;
+      color: #FFD700;
+    }
+
+    .instructions ul {
+      text-align: left;
+      margin-left: 20px;
+    }
+
+    .instructions li {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧱 Block Builder</h1>
+  <p class="subtitle">Build anything you want!</p>
+
+  <div class="game-container">
+    <div class="toolbar">
+      <h3>Blocks</h3>
+      <button class="block-btn grass selected" data-block="grass" title="Grass"></button>
+      <button class="block-btn stone" data-block="stone" title="Stone"></button>
+      <button class="block-btn dirt" data-block="dirt" title="Dirt"></button>
+      <button class="block-btn wood" data-block="wood" title="Wood"></button>
+      <button class="block-btn leaves" data-block="leaves" title="Leaves"></button>
+      <button class="block-btn sky" data-block="sky" title="Erase"></button>
+    </div>
+
+    <div class="world" id="world"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-clear" onclick="clearWorld()">🗑️ Clear All</button>
+    <button class="btn btn-save" onclick="saveWorld()">💾 Save</button>
+  </div>
+
+  <div class="instructions">
+    <h3>How to Play:</h3>
+    <ul>
+      <li><strong>Click</strong> on the grid to place a block</li>
+      <li><strong>Pick</strong> a block from the toolbar on the left</li>
+      <li><strong>Erase</strong> by selecting the sky (cloud) block</li>
+      <li><strong>Build</strong> anything - houses, trees, mountains!</li>
+    </ul>
+  </div>
+
+  <script>
+    const world = document.getElementById('world');
+    let selectedBlock = 'grass';
+    const rows = 15;
+    const cols = 20;
+
+    // Create the world grid
+    function createWorld() {
+      world.innerHTML = '';
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          
+          // Set default terrain - bottom 3 rows are grass
+          if (row >= rows - 3) {
+            cell.classList.add('grass');
+            cell.dataset.block = 'grass';
+          } else {
+            cell.classList.add('sky');
+            cell.dataset.block = 'sky';
+          }
+          
+          cell.addEventListener('click', () => placeBlock(cell));
+          cell.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            eraseBlock(cell);
+          });
+          
+          world.appendChild(cell);
+        }
+      }
+    }
+
+    function placeBlock(cell) {
+      cell.className = 'cell ' + selectedBlock;
+      cell.dataset.block = selectedBlock;
+    }
+
+    function eraseBlock(cell) {
+      cell.className = 'cell sky';
+      cell.dataset.block = 'sky';
+    }
+
+    // Block selection
+    document.querySelectorAll('.block-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelector('.block-btn.selected').classList.remove('selected');
+        btn.classList.add('selected');
+        selectedBlock = btn.dataset.block;
+      });
+    });
+
+    function clearWorld() {
+      if (confirm('Clear everything?')) {
+        createWorld();
+      }
+    }
+
+    function saveWorld() {
+      const data = [];
+      document.querySelectorAll('.cell').forEach(cell => {
+        data.push(cell.dataset.block);
+      });
+      localStorage.setItem('blockBuilder', JSON.stringify(data));
+      alert('World saved! 💾');
+    }
+
+    function loadWorld() {
+      const saved = localStorage.getItem('blockBuilder');
+      if (saved) {
+        const data = JSON.parse(saved);
+        const cells = document.querySelectorAll('.cell');
+        data.forEach((block, i) => {
+          if (cells[i]) {
+            cells[i].className = 'cell ' + block;
+            cells[i].dataset.block = block;
+          }
+        });
+      }
+    }
+
+    // Initialize
+    createWorld();
+    loadWorld();
+  </script>
+</body>
+</html>
