@@ -293,6 +293,28 @@
       justify-content: center;
     }
 
+    .jump-btn {
+      position: fixed;
+      bottom: 50px;
+      right: 130px;
+      width: 70px;
+      height: 70px;
+      background: rgba(76, 175, 80, 0.8);
+      border-radius: 50%;
+      border: 4px solid white;
+      color: white;
+      font-size: 1.5rem;
+      display: none;
+      z-index: 50;
+      touch-action: none;
+    }
+
+    .jump-btn.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     @media (pointer: coarse) {
       .joystick-container.show, .attack-btn.show {
         display: flex !important;
@@ -379,8 +401,8 @@
   </div>
 
   <div class="instructions">
-    <strong>How to Play (Computer):</strong> Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to move. Click to place blocks. Click monsters to attack.<br>
-    <strong>How to Play (iPad):</strong> Use the <strong>joystick</strong> on the left to move. Tap the <strong>red attack button</strong> on the right to fight monsters!
+    <strong>How to Play (Computer):</strong> Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to move. <strong>Spacebar</strong> to jump. Click to place blocks. Click monsters to attack.<br>
+    <strong>How to Play (iPad):</strong> Use the <strong>joystick</strong> on the left to move. Tap the <strong>green up button</strong> to jump. Tap the <strong>red attack button</strong> to fight!
   </div>
 
   <div class="game-over" id="gameOver">
@@ -394,6 +416,7 @@
   </div>
 
   <div class="attack-btn" id="attackBtn">⚔️</div>
+  <div class="jump-btn" id="jumpBtn">⬆️</div>
 
   <script>
     const world = document.getElementById('world');
@@ -452,76 +475,22 @@
       return total / maxValue;
     }
 
-    // Create the world grid with proper Minecraft-style terrain
+    // Create flat grass world
     function createWorld() {
       world.innerHTML = '';
       
-      const seed = Math.random() * 1000;
-      
-      for (let col = 0; col < cols; col++) {
-        // Generate height using smooth noise
-        const heightValue = perlinNoise(col * 0.15, seed);
-        const groundRow = Math.floor(rows - 2 - heightValue * 6); // Height between 1-7 blocks
-        
-        // Determine biome based on height
-        let biome = 'plains';
-        if (groundRow >= rows - 2) biome = 'water';
-        else if (groundRow >= rows - 3) biome = 'beach';
-        else if (groundRow <= rows - 7) biome = 'mountain';
-        else biome = 'plains';
-        
-        for (let row = 0; row < rows; row++) {
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
           const cell = document.createElement('div');
           cell.className = 'cell';
           
-          if (row > groundRow) {
-            // Sky
+          // Flat grass at bottom, sky above
+          if (row >= rows - 2) {
+            cell.classList.add('grass');
+            cell.dataset.block = 'grass';
+          } else {
             cell.classList.add('sky');
             cell.dataset.block = 'sky';
-          } else if (row === groundRow) {
-            // Surface layer
-            switch(biome) {
-              case 'water':
-                cell.classList.add('water');
-                cell.dataset.block = 'water';
-                break;
-              case 'beach':
-                cell.classList.add('sand');
-                cell.dataset.block = 'sand';
-                break;
-              case 'mountain':
-                cell.classList.add('stone');
-                cell.dataset.block = 'stone';
-                break;
-              default:
-                cell.classList.add('grass');
-                cell.dataset.block = 'grass';
-            }
-          } else if (row > groundRow - 3) {
-            // Below surface - dirt
-            switch(biome) {
-              case 'water':
-                cell.classList.add('sand');
-                cell.dataset.block = 'sand';
-                break;
-              case 'mountain':
-                cell.classList.add('stone');
-                cell.dataset.block = 'stone';
-                break;
-              default:
-                cell.classList.add('dirt');
-                cell.dataset.block = 'dirt';
-            }
-          } else {
-            // Deep underground - stone
-            cell.classList.add('stone');
-            cell.dataset.block = 'stone';
-            
-            // Sometimes add caves (random spots of air)
-            if (Math.random() < 0.05) {
-              cell.classList.add('sky');
-              cell.dataset.block = 'sky';
-            }
           }
           
           cell.addEventListener('click', () => placeBlock(cell));
@@ -529,6 +498,59 @@
         }
       }
     }
+
+    // Player physics
+    let velocityY = 0;
+    const gravity = 0.5;
+    const jumpStrength = -8;
+    let isGrounded = false;
+
+    function applyGravity() {
+      if (!gameRunning) return;
+      
+      // Calculate target Y based on gravity
+      let targetY = playerY + velocityY;
+      
+      // Check collision with ground
+      const groundRow = rows - 2;
+      
+      if (targetY > groundRow) {
+        // Land on ground
+        playerY = groundRow;
+        velocityY = 0;
+        isGrounded = true;
+      } else {
+        // Check if there's a block below
+        const cellBelow = getCell(playerX, Math.floor(targetY) + 1);
+        if (cellBelow && cellBelow.dataset.block !== 'sky') {
+          playerY = Math.floor(targetY);
+          velocityY = 0;
+          isGrounded = true;
+        } else {
+          // Fall
+          playerY = targetY;
+          velocityY += gravity;
+          isGrounded = false;
+        }
+      }
+      
+      updatePlayerPosition();
+    }
+
+    function getCell(x, y) {
+      if (x < 0 || x >= cols || y < 0 || y >= rows) return null;
+      return world.children[y * cols + x];
+    }
+
+    function jump() {
+      if (isGrounded && gameRunning) {
+        velocityY = jumpStrength;
+        isGrounded = false;
+      }
+    }
+
+    // Add gravity loop
+    setInterval(applyGravity, 100);
 
     function placeBlock(cell) {
       if (!gameRunning) return;
@@ -717,7 +739,9 @@
       score = 0;
       wave = 1;
       playerX = 10;
-      playerY = 12;
+      playerY = 10;
+      velocityY = 0;
+      isGrounded = false;
       
       healthFill.style.width = '100%';
       healthFill.classList.remove('low');
@@ -754,6 +778,7 @@
     const joystick = document.getElementById('joystick');
     const joystickKnob = document.getElementById('joystickKnob');
     const attackBtn = document.getElementById('attackBtn');
+    const jumpBtn = document.getElementById('jumpBtn');
     
     let joystickActive = false;
     let joystickX = 0;
@@ -763,6 +788,7 @@
     if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
       joystick.classList.add('show');
       attackBtn.classList.add('show');
+      jumpBtn.classList.add('show');
     }
 
     // Joystick touch handling
@@ -842,6 +868,22 @@
       
       attackBtn.style.transform = 'scale(0.9)';
       setTimeout(() => attackBtn.style.transform = 'scale(1)', 100);
+    });
+
+    // Jump button
+    jumpBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      jump();
+      jumpBtn.style.transform = 'scale(0.9)';
+      setTimeout(() => jumpBtn.style.transform = 'scale(1)', 100);
+    });
+
+    // Add spacebar for jump
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        jump();
+      }
     });
   </script>
 </body>
