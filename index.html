@@ -346,15 +346,6 @@
 
   <!-- Game Container -->
   <div class="game-container" id="gameContainer">
-    <div class="toolbar">
-      <h3>Blocks</h3>
-      <button class="block-btn grass selected" data-block="grass"></button>
-      <button class="block-btn stone" data-block="stone"></button>
-      <button class="block-btn dirt" data-block="dirt"></button>
-      <button class="block-btn wood" data-block="wood"></button>
-      <button class="block-btn leaves" data-block="leaves"></button>
-      <button class="block-btn sky" data-block="sky"></button>
-    </div>
     <div class="world-container">
       <div class="world" id="world"></div>
       <div class="player" id="player">😊</div>
@@ -366,7 +357,7 @@
   </div>
 
   <div class="instructions" id="instructions">
-    <strong>Controls:</strong> Arrow Keys/WASD to move, Space to jump. Click to place blocks. Click monsters to attack!
+    <strong>Controls:</strong> Arrow Keys/WASD to move, Space to jump (tap twice for double jump!). Click on coins to collect them. Click on monsters to attack!
   </div>
 
   <div class="joystick-container" id="joystick"><div class="joystick-knob" id="joystickKnob"></div></div>
@@ -500,26 +491,13 @@
             cell.classList.add('sky');
             cell.dataset.block = 'sky';
           }
-          cell.addEventListener('click', () => placeBlock(cell));
+          // Click on cell does nothing (building removed)
           world.appendChild(cell);
         }
       }
     }
 
-    function placeBlock(cell) {
-      if (!gameRunning) return;
-      cell.className = 'cell ' + selectedBlock;
-      cell.dataset.block = selectedBlock;
-    }
-
-    // Block selection
-    document.querySelectorAll('.block-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelector('.block-btn.selected').classList.remove('selected');
-        btn.classList.add('selected');
-        selectedBlock = btn.dataset.block;
-      });
-    });
+    // No more building - removed placeBlock function
 
     function resetPlayer() {
       playerX = 7;
@@ -607,22 +585,8 @@
         }
       });
 
-      // Check coin collection
-      coinItems.forEach((coin, i) => {
-        const cx = parseInt(coin.dataset.x);
-        const cy = parseInt(coin.dataset.y);
-        if (cx === playerX && cy === playerY) {
-          // Coin collected animation
-          coin.style.transform = 'scale(1.5)';
-          coin.style.opacity = '0';
-          coin.style.transition = 'all 0.2s';
-          setTimeout(() => {
-            coin.remove();
-          }, 200);
-          coinItems.splice(i, 1);
-          updateCoinDisplay();
-        }
-      });
+      // Remove coin collision check from player collision
+      // Coins are now collected by clicking on them
     }
 
     function takeDamage(amount) {
@@ -680,10 +644,39 @@
         coin.dataset.y = y;
         coin.style.left = (x * 30 + 5) + 'px';
         coin.style.top = (y * 30 + 5) + 'px';
+        
+        // Click to collect coin
+        coin.onclick = (e) => {
+          e.stopPropagation();
+          collectCoin(coin);
+        };
+        
         world.parentElement.appendChild(coin);
         coinItems.push(coin);
       }
       updateCoinDisplay();
+    }
+
+    function collectCoin(coin) {
+      if (!gameRunning) return;
+      
+      const cx = parseInt(coin.dataset.x);
+      const cy = parseInt(coin.dataset.y);
+      
+      // Check if player is close enough
+      if (Math.abs(cx - playerX) <= 1 && Math.abs(cy - playerY) <= 1) {
+        // Coin collected animation
+        coin.style.transform = 'scale(1.5)';
+        coin.style.opacity = '0';
+        coin.style.transition = 'all 0.2s';
+        setTimeout(() => {
+          coin.remove();
+        }, 200);
+        
+        const idx = coinItems.indexOf(coin);
+        if (idx > -1) coinItems.splice(idx, 1);
+        updateCoinDisplay();
+      }
     }
 
     function attackMonster(monster) {
