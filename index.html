@@ -366,7 +366,7 @@
   </div>
 
   <div class="instructions" id="instructions">
-    <strong>Controls:</strong> Arrow Keys/WASD to move, Space to jump (tap twice for double jump!). Click on coins to collect them. Click on monsters to attack!
+    <strong>Controls:</strong> Arrow Keys/WASD to move, Space to jump (tap twice for double jump!). Touch coins to collect them. Click on monsters to attack!
   </div>
 
   <div class="joystick-container" id="joystick"><div class="joystick-knob" id="joystickKnob"></div></div>
@@ -678,8 +678,18 @@
         }
       });
 
-      // Remove coin collision check from player collision
-      // Coins are now collected by clicking on them
+      // Check coin collision - collect when player touches coin
+      coinItems = coinItems.filter(coin => {
+        const cx = parseInt(coin.dataset.x);
+        const cy = parseInt(coin.dataset.y);
+        if (cx === playerX && cy === playerY) {
+          coin.remove();
+          totalCoins++;
+          updateCoinDisplay();
+          return false;
+        }
+        return true;
+      });
     }
 
     function takeDamage(amount) {
